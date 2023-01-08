@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="Connor Rowland" name="author">
+  <meta content="#fff" name="theme-color">
+  <meta content="width=device-width,minimum-scale=1" name="viewport">
+  <style>:root{--mono-font:San Francisco Mono,Monaco,"Consolas","Lucida Console","DejaVu Sans Mono","Bitstream Vera Sans Mono",monospace;--sans-font:-apple-system,BlinkMacSystemFont,"avenir next",avenir,helvetica,"helvetica neue",ubuntu,roboto,noto,"segoe ui",arial,sans-serif}body{color:#111;margin:30px auto;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;line-height:1.6;font-size:1rem;font-family:var(--sans-font)}.only-print{display:none}a{color:#000;text-decoration-skip-ink:auto;text-decoration:underline}a:visited{color:#333}ol,ul{margin:1rem 0}ul ul{margin:0}ol li ul{margin:5px 10px}h1 a{color:#111}em{font-style:italic}h1{margin-bottom:.5rem;line-height:1.25;font-weight:600;font-size:32px;letter-spacing:.004em}h2{font-size:1.5rem}h2,h3{margin-bottom:.5rem;line-height:1.25;font-weight:600;letter-spacing:.009em}h3{font-size:1.25rem}p{margin:1rem 0}hr{background:#000;height:1px;border:0}.limiter{max-width:780px;padding-left:20px;padding-right:20px;margin-left:auto;margin-right:auto}.pad2y{padding-top:0px;padding-bottom:20px}.update{background:#fffceb;padding:1rem 1rem 0;border:1px solid #fbf1a9;border-radius:2px}.nu a{text-decoration:none}.nu a:hover{text-decoration:underline}@media screen and (max-width:640px){.limiter{width:auto}}@media screen and (max-width:1024px){.header-wrap{border-bottom:1px solid #000;padding-bottom:20px}}@media screen and (min-width:1025px){.header{position:absolute;top:50px;right:50%;margin-right:340px!important;letter-spacing:-.009em}.content h1:first-child{margin-top:0}}@media print{.no-print{display:none}.only-print{display:block}body{margin:0}.limiter{max-width:100%!important;margin:0!important;padding:0!important}}
+    .axis path,
+    .axis line {
+    	fill: none;
+    	stroke: black;
+    	shape-rendering: crispEdges;
+    }
+    .axis text {
+    	font-family: sans-serif;
+    	font-size: 11px;
+    }
+    .tablinks {
+    	border: 1px solid black;
+    	border-radius: 4px;
+	background-color: white;
+	color: black;
+    }
+    .tablinks:hover {
+	background: #e7e7e7;
+    }
+</style>
+<title>MS Index</title>
+<link rel='shortcut icon' type='image/png' href='./conifer.png' />
+<script type="text/javascript" src="./chart/d3.js"></script>
+<script type="text/javascript">
+function openGraph(evt, graphName, quartiles = false) {
+  // Declare all variables
+  var i, tabcontent, tablinks;
+
+  // Get all elements with class="tabcontent" and hide them
+  tabcontent = document.getElementsByClassName("tabcontent");
+  for (i = 0; i < tabcontent.length; i++) {
+    tabcontent[i].style.display = "none";
+  }
+
+  // Get all elements with class="tablinks" and remove the class "active"
+  tablinks = document.getElementsByClassName("tablinks");
+  for (i = 0; i < tablinks.length; i++) {
+    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
+
+  // Show the current tab, and add an "active" class to the button that opened the tab
+  document.getElementById(graphName).style.display = "block";
+
+  const all_quartiles = document.getElementById(graphName).getElementsByClassName("quartile");
+  for (let i = 0; i < all_quartiles.length; i++){
+    all_quartiles[i].style.display = "none";
+  }
+  if (quartiles) {
+    const all_quartiles = document.getElementById(graphName).getElementsByClassName("quartile");
+    if (all_quartiles[0].style.display === "none") {
+      for (let i = 0; i < all_quartiles.length; i++){
+        all_quartiles[i].style.display = "block";
+      }
+    }
+  }
+  evt.currentTarget.className += " active";
+}
+
+function makeGraph(graphName){
+	var width = 500;
+	var height = 380;
+	var padding = 30;
+	var margin = {top: 20, right: 30, bottom: 30, left: 25};
+	var filename = "./chart/data/msindex" + graphName + ".csv";
+	var days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+	d3.csv(filename, function(d) {
+		return {
+			date: new Date(d.date + " 00:00:00"),
+			value: +d.value
+		};
+	}).then(function(data) {
+		var options = {year:'numeric', month:'long', day:'numeric'};
+		var lastdate = data[data.length - 1].date.toLocaleDateString("en-US", options);
+		var lastvalue = (data[data.length - 1].value).toFixed(2);
+		var weekday = data[data.length - 1].date.getDay();
+
+		var update = "On " + days[weekday] + " " + lastdate + " the MS Index was at " + lastvalue;
+		d3.select("#currentindex").text(update)
+
+		x = d3.scaleUtc()
+			.domain(d3.extent(data, d => d.date))
+			.range([margin.left, width - margin.right])
+
+		y = d3.scaleLinear()
+			.domain([0, d3.max(data, d => d.value)]).nice()
+			.range([height - margin.bottom, margin.top])
+
+		xAxis = g => g
+			.attr("transform", `translate(0,${height - margin.bottom})`)
+			.call(d3.axisBottom(x).ticks(width / 90).tickSizeOuter(0))
+
+
+		yAxis = g => g
+		.attr("transform", `translate(${margin.left},0)`)
+		.call(d3.axisLeft(y))
+		.call(g => g.select(".domain").remove())
+		.call(g => g.select(".tick:last-of-type text").clone()
+			.text(data.y))
+
+		line = d3.line()
+			.x(function(d) { return x(d.date); })
+			.y(function(d) { return y(d.value); });
+
+		var graphId = "#".concat(graphName);
+		var svg = d3.select(graphId)
+			.append("svg")
+			.attr("viewBox", [0, 0, width, height])
+			.attr("id", "chart");
+
+		svg.append("g")
+		  .call(xAxis);
+
+		svg.append("g")
+		  .call(yAxis);
+
+
+		svg.append("path")
+		  .datum(data)
+		  .attr("fill", "none")
+		  .attr("stroke", "steelblue")
+		  .attr("stroke-width", 1.5)
+		  .attr("stroke-linejoin", "round")
+		  .attr("stroke-linecap", "round")
+		  .attr("d", line);
+
+		const points = Array.from(data, x => x.value);
+		const asc = arr => arr.sort((a, b) => a - b);
+		const sum = arr => arr.reduce((a, b) => a + b, 0);
+		const mean = arr => sum(arr) / arr.length;
+		const quantile = (arr, q) => {
+		    const sorted = asc(arr);
+		    const pos = (sorted.length - 1) * q;
+		    const base = Math.floor(pos);
+		    const rest = pos - base;
+		    if (sorted[base + 1] !== undefined) {
+			return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+		    } else {
+			return sorted[base];
+		    }
+		};
+
+		const q25 = arr => quantile(arr, .25);
+		const q50 = arr => quantile(arr, .50);
+		const q75 = arr => quantile(arr, .75);
+		const quartiles = [q25(points), q50(points), q75(points)]
+		quartiles.forEach(function (x, index) {
+		    svg.append("line")
+		      .style("stroke", "grey")
+		      .style("display", "none")
+		      .attr("class", "quartile")
+		      .attr("x1", 30)
+		      .attr("y1", y(x))
+		      .attr("x2", 475)
+		      .attr("y2", y(x));
+		});
+
+  });
+}
+
+makeGraph("oneyear");
+makeGraph("fiveyear");
+makeGraph("tenyear");
+makeGraph("max");
+
+</script>
+</head>
+<body>
+<div class="pad2y limiter content">
+  <h1>Mises Stationarity Index</h1>
+  <div class="body">
+  <p id="currentindex"></p>
+  <div class="tab">
+	<button class="tablinks" onclick="openGraph(event, 'max', true)">Max Quartiles</button>
+	<button class="tablinks" id="maxbutton" onclick="openGraph(event, 'max')">Max</button>
+	<button class="tablinks" onclick="openGraph(event, 'tenyear')">10 Year</button>
+	<button class="tablinks" onclick="openGraph(event, 'fiveyear')">5 Year</button>
+	<button class="tablinks" onclick="openGraph(event, 'oneyear')">1 Year</button>
+  </div>
+
+  <div id="max" class="tabcontent"></div>
+  <div id="tenyear" class="tabcontent"></div>
+  <div id="fiveyear" class="tabcontent"></div>
+  <div id="oneyear" class="tabcontent"></div>
+  <h2>What is it?</h2>
+  <p> An index presented in the book: The Dao of Capital by Mark Spitznagel.</p> <h2>How is it
+  calculated?</h2> <p>The MS index is the expected return on invested capital (equity) divided
+  by the invested capitals replacement value (net worth), and can be calculated
+  for the U.S. as follows.</p>
+  <?xml version="1.0" encoding="UTF-8"?>
+  <svg width="100%" viewBox="0 0 633 61" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+      <title>msindex</title>
+      <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+          <line x1="322.5" y1="30" x2="632" y2="30.5" id="Line" stroke="#979797" stroke-linecap="square"></line>
+          <text id="total-U.S.-corporate" font-family="Helvetica" font-size="21" font-weight="normal" fill="#000000">
+              <tspan x="356.25" y="20">total U.S. corporate equity</tspan>
+          </text>
+          <text id="total-U.S.-corporate" font-family="Helvetica" font-size="21" font-weight="normal" fill="#000000">
+              <tspan x="341.25" y="55.5">total U.S. corporate net worth</tspan>
+          </text>
+          <text id="Misesian-Stationarit" font-family="Helvetica" font-size="21" font-weight="normal" fill="#000000">
+              <tspan x="0.0229492188" y="37">Misesian Stationarity Index</tspan>
+          </text>
+          <text id="=" font-family="Helvetica" font-size="21" font-weight="normal" fill="#000000">
+              <tspan x="280.368164" y="38">=</tspan>
+          </text>
+      </g>
+  </svg>
+  <p>The Z.1 Federal quarterly reports give us the data we need. On table B.103
+  (Balance Sheet of Nonfinancial Corporate Business) line 40 holds the market
+  value of equities outstanding and line 39 holds the net worth.</p>
+  <p>These reports only come out each quarter, therefore we want a way to estimate the MS Index in
+  the meantime. We can use the U.S. stock market value (S&P
+  500 Index) to estimate U.S. corporate equity and the most recent Z1 net
+  worth number to estimate the current U.S. corporate net worth.</p>
+
+  <p>The final step requires us to scale the index values by the running <a href="https://en.wikipedia.org/wiki/Geometric_mean">geometric mean</a> (P.231 Dao of Capital). To do this, for each nth point
+  <ol>
+	  <li>Multiply all previous unscaled index values together</li>
+	  <li>Take the nth root of step 1</li>
+	  <li>Divide the current index value by step 2</li>
+  </ol>
+  This gives us the graph seen above.</p>
+
+  <h2>Data Files</h2>
+  <p>The MS Index data files can be downloaded here</p>
+  <ul>
+
+  <li><a href="/chart/data/msindexmax.csv">Max</a></li>
+  <li><a href="/chart/data/msindextenyear.csv">Ten Year</a></li>
+  <li><a href="/chart/data/msindexfiveyear.csv">Five Year</a></li>
+  <li><a href="/chart/data/msindexoneyear.csv">One Year</a></li>
+  </ul>
+
+  Since FED data starts at 1945, the 1900-45 data can be found <a href="http://www.smithers.co.uk/q_faqs/us-cape-and-q-chart/">here</a>.
+
+  <p>Feel free to contact me with suggestions. <a href="mailto:connor.k.rowland@icloud.com">Email</a> or <a href="https://twitter.com/connorkrowland">Twitter</a></p>
+</div>
+<script>
+  document.getElementById("maxbutton").click();
+</script>
+</body>
+</html>
