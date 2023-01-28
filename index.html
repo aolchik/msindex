@@ -28,7 +28,7 @@
 </style>
 <title>MS Index</title>
 <link rel='shortcut icon' type='image/png' href='./conifer.png' />
-<script type="text/javascript" src="./chart/d3.js"></script>
+<script src="https://d3js.org/d3.v7.min.js"></script>
 <script type="text/javascript">
 function openGraph(evt, graphName, quartiles = false) {
   // Declare all variables
@@ -69,7 +69,7 @@ function makeGraph(graphName){
 	var height = 380;
 	var padding = 30;
 	var margin = {top: 20, right: 30, bottom: 30, left: 25};
-	var filename = "./chart/data/msindex" + graphName + ".csv";
+	var filename = "./chart/" + graphName + ".csv";
 	var days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 	d3.csv(filename, function(d) {
@@ -191,8 +191,13 @@ makeGraph("max");
   <div id="fiveyear" class="tabcontent"></div>
   <div id="oneyear" class="tabcontent"></div>
   <h2>What is it?</h2>
-  <p> An index presented in the book: The Dao of Capital by Mark Spitznagel.</p> <h2>How is it
-  calculated?</h2> <p>The MS index is the expected return on invested capital (equity) divided
+  <p>
+      An index presented in the book: The Dao of Capital by Mark Spitznagel.
+  </p>
+
+<h2>How is it calculated?</h2>
+  <p>All source code is available <a href="https://github.com/ckrowland/msindex">here</a>.</p>
+  <p>The MS index is the expected return on invested capital (equity) divided
   by the invested capitals replacement value (net worth), and can be calculated
   for the U.S. as follows.</p>
   <?xml version="1.0" encoding="UTF-8"?>
@@ -234,10 +239,10 @@ makeGraph("max");
   <p>The MS Index data files can be downloaded here</p>
   <ul>
 
-  <li><a href="/chart/data/msindexmax.csv">Max</a></li>
-  <li><a href="/chart/data/msindextenyear.csv">Ten Year</a></li>
-  <li><a href="/chart/data/msindexfiveyear.csv">Five Year</a></li>
-  <li><a href="/chart/data/msindexoneyear.csv">One Year</a></li>
+  <li><a href="/chart/max.csv">Max</a></li>
+  <li><a href="/chart/tenyear.csv">Ten Year</a></li>
+  <li><a href="/chart/fiveyear.csv">Five Year</a></li>
+  <li><a href="/chart/oneyear.csv">One Year</a></li>
   </ul>
 
   Since FED data starts at 1945, the 1900-45 data can be found <a href="http://www.smithers.co.uk/q_faqs/us-cape-and-q-chart/">here</a>.

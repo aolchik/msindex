@@ -7,33 +7,45 @@ import { xml2js } from "xml-js";
 await rewriteAllGraphs();
 
 serve({
-  fetch(req: Request) {
-    const pathname = new URL(req.url).pathname.substring(1);
+    // SSL is enabled if these two are set
+    // certFile: './cert.pem',
+    // keyFile: './key.pem',
+    port: 3000, // number or string
+    hostname: "localhost", // defaults to 0.0.0.0
 
-    // If the URL is empty, display index file.
-    if (pathname === "") {
-      return new Response(file(import.meta.dir + "/index.html"));
-    }
-
-    return new Response(file(pathname));
-  },
-
-  // this is called when fetch() throws or rejects
-  error(err: Error) {
-  return new Response("uh oh! :(" + String(err.toString()), { status: 500 });
-  },
-
-  // this boolean enables the bun's default error handler
-  // sometime after the initial release, it will auto reload as well
-  development: process.env.NODE_ENV !== "production",
-  // note: this isn't node, but for compatibility bun supports process.env + more stuff in process
-
-  // SSL is enabled if these two are set
-  // certFile: './cert.pem',
-  // keyFile: './key.pem',
-
-  port: 3000, // number or string
-  hostname: "localhost", // defaults to 0.0.0.0
+    async fetch(req: Request) {
+        const pathname = new URL(req.url).pathname.substring(1);
+        if (pathname === "") {
+            return new Response(
+                await Bun.readFile("./index.html"), {
+                    headers: {
+                        "Content-Type": "text/html; charset=utf-8",
+                    },
+                },
+            );
+        }
+        else if (pathname === "conifer.png" || pathname === "favicon.ico") {
+            //TODO: Support serving images
+        } else {
+          return new Response(await Bun.readFile(pathname), {
+              headers: {
+                  "Content-Type": "text/csv",
+              },
+          });
+        }
+    },
+    
+    // this is called when fetch() throws or rejects
+    error(err: Error) {
+        return new Response("Error: " + String(err.toString()), {
+            status: 500
+        });
+    },
+    
+    // this boolean enables the bun's default error handler
+    // sometime after the initial release, it will auto reload as well
+    development: process.env.NODE_ENV !== "production",
+    // note: this isn't node, but for compatibility bun supports process.env + more stuff in process
 });
 
 function createDB() {
@@ -51,7 +63,7 @@ function createDB() {
 };
 
 async function insertPreFEDData(db, fileName) {
-    const f = await Bun.file(fileName).text();
+    const f = await Bun.readFile(fileName);
     const data = parse(f).data;
     for (const idx in data) {
         if (idx in [0, 1, 2]) {
@@ -215,7 +227,7 @@ Cron("* 0 18 * * MON-FRI", () => {
 
 async function rewriteAllGraphs() {
     const db = createDB();
-    await insertPreFEDData(db, "./chart/data/old-fed-data.csv");
+    await insertPreFEDData(db, "./chart/old-fed-data.csv");
     await insertZ1EquityData(db);
     await insertZ1NetWorthData(db);
     await insertSP500Data(db);
@@ -232,8 +244,8 @@ async function rewriteAllGraphs() {
     const fiveYearCsv = createCSVData(fiveYear, lastPoint);
     const oneYearCsv = createCSVData(oneYear, lastPoint);
 
-    Bun.write("./chart/data/msindexmax.csv", maxCsv);
-    Bun.write("./chart/data/msindextenyear.csv", tenYearCsv);
-    Bun.write("./chart/data/msindexfiveyear.csv", fiveYearCsv);
-    Bun.write("./chart/data/msindexoneyear.csv", oneYearCsv);
+    Bun.write("./chart/max.csv", maxCsv);
+    Bun.write("./chart/tenyear.csv", tenYearCsv);
+    Bun.write("./chart/fiveyear.csv", fiveYearCsv);
+    Bun.write("./chart/oneyear.csv", oneYearCsv);
 }
