@@ -222,7 +222,7 @@ async function getMonthlyMSIndex(db, num_years) {
 }
 
 Cron("* 0 18 * * MON-FRI", () => {
-    rewriteAllGraphs();
+    await rewriteAllGraphs();
 });
 
 async function rewriteAllGraphs() {
